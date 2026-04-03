@@ -8,7 +8,7 @@ Provides macros that transform DV2 hubs, links, and satellites into Kimball dime
 
 ## Supported platforms
 
-Snowflake, BigQuery, PostgreSQL, Databricks, SQL Server
+Databricks (tested), Snowflake, BigQuery, PostgreSQL, SQL Server (adapter code included, not yet tested)
 
 ## Installation
 
