@@ -1,0 +1,562 @@
+version: 2
+
+models:
+  # ── dim() SCD1 ──
+  - name: dim_customer
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+      - name: CUSTOMER_NAME
+        tests:
+          - not_null
+      - name: CUSTOMER_PHONE
+        tests:
+          - not_null
+
+  # ── dim() SCD2 ──
+  - name: dim_product
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.dim_scd2_no_gap:
+              eff_from: EFFECTIVE_FROM
+              eff_to: EFFECTIVE_TO
+          - automate_dv_kimball.dim_scd2_one_current:
+              is_current_col: IS_CURRENT
+      - name: PRODUCT_ID
+        tests:
+          - not_null
+      - name: EFFECTIVE_FROM
+        tests:
+          - not_null
+      - name: EFFECTIVE_TO
+        tests:
+          - not_null
+      - name: IS_CURRENT
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false, 'true', 'false']
+      - name: PRODUCT_NAME
+        tests:
+          - not_null
+      - name: UNIT_PRICE
+        tests:
+          - not_null
+
+  # ── dim() integer surrogate ──
+  - name: dim_customer_int_sk
+    columns:
+      - name: DIM_SK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.dim_sk_unique_not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+
+  # ── dim() no satellite ──
+  - name: dim_customer_no_sat
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+
+  # ── dim_date (static conformed) ──
+  - name: dim_date
+    columns:
+      - name: DATE_KEY
+        tests:
+          - not_null
+          - unique
+      - name: FULL_DATE
+        tests:
+          - not_null
+
+  # ── fact() full ──
+  - name: fact_order
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.fact_fk_to_dim:
+              dim_model: ref('dim_customer')
+              dim_pk: CUSTOMER_HK
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.fact_fk_to_dim:
+              dim_model: ref('dim_product')
+              dim_pk: PRODUCT_HK
+      - name: ORDER_DATE_KEY
+        tests:
+          - not_null
+      - name: ORDER_NUMBER
+        tests:
+          - not_null
+      - name: ORDER_AMOUNT
+        tests:
+          - not_null
+          - automate_dv_kimball.fact_measure_not_null
+      - name: ORDER_QUANTITY
+        tests:
+          - not_null
+          - automate_dv_kimball.fact_measure_not_null
+
+  # ── fact() no satellite ──
+  - name: fact_order_no_sat
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ORDER_NUMBER
+        tests:
+          - not_null
+
+  # ── fact() no degenerate ──
+  - name: fact_order_no_degen
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: ORDER_AMOUNT
+        tests:
+          - not_null
+
+  # ── fact_periodic_snapshot() daily ──
+  - name: fact_inventory_daily
+    tests:
+      - automate_dv_kimball.periodic_snapshot_no_dup_grain:
+          grain_columns: ['PRODUCT_HK', 'snapshot_date_key']
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: snapshot_date_key
+        tests:
+          - not_null
+      - name: QUANTITY_ON_HAND
+        tests:
+          - not_null
+
+  # ── fact_periodic_snapshot() monthly ──
+  - name: fact_inventory_monthly
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: snapshot_date_key
+        tests:
+          - not_null
+      - name: QUANTITY_ON_HAND
+        tests:
+          - not_null
+
+  # ── fact_accumulating_snapshot() full ──
+  - name: fact_order_fulfillment
+    tests:
+      - automate_dv_kimball.accum_snapshot_milestones_ordered:
+          milestone_columns: ['ORDER_DATE', 'SHIP_DATE']
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ORDER_DATE
+        tests:
+          - not_null
+      - name: ORDER_AMOUNT
+        tests:
+          - not_null
+
+  # ── fact_accumulating_snapshot() no satellite ──
+  - name: fact_order_fulfillment_no_sat
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ORDER_DATE
+        tests:
+          - not_null
+
+  # ── fact_accumulating_snapshot() timespan ──
+  - name: fact_order_fulfillment_timespan
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ORDER_DATE
+        tests:
+          - not_null
+      - name: EFFECTIVE_FROM
+        tests:
+          - not_null
+      - name: EFFECTIVE_TO
+        tests:
+          - not_null
+      - name: IS_CURRENT
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false, 'true', 'false']
+      - name: ORDER_AMOUNT
+        tests:
+          - not_null
+
+  # ── fact_factless() with count ──
+  - name: fact_promotion_coverage
+    columns:
+      - name: PROMO_COV_HK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.factless_no_duplicate
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: RECORD_COUNT
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, '1']
+
+  # ── fact_factless() without count ──
+  - name: fact_promotion_no_count
+    columns:
+      - name: PROMO_COV_HK
+        tests:
+          - not_null
+          - unique
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+
+  # ── dim_bridge() weighted ──
+  - name: bridge_customer_account
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+      - name: OWNERSHIP_PCT
+        tests:
+          - not_null
+
+  # ── dim_bridge() simple ──
+  - name: bridge_customer_account_simple
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+
+  # ── dim() multi-satellite ──
+  - name: dim_customer_multi_sat
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+      - name: CUSTOMER_NAME
+        tests:
+          - not_null
+      - name: ADDRESS_LINE
+        tests:
+          - not_null
+
+  # ── dim() SCD2 + integer_surrogate ──
+  - name: dim_product_scd2_int_sk
+    columns:
+      - name: DIM_SK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.dim_sk_unique_not_null
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.dim_scd2_one_current:
+              is_current_col: IS_CURRENT
+      - name: EFFECTIVE_FROM
+        tests:
+          - not_null
+      - name: IS_CURRENT
+        tests:
+          - not_null
+
+  # ── dim() with BV computed_sat ──
+  - name: dim_customer_with_bv
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_SEGMENT
+        tests:
+          - not_null
+      - name: LIFETIME_VALUE
+        tests:
+          - not_null
+
+  # ── dim() with BV same_as_link source ──
+  - name: dim_customer_deduped
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+
+  # ── fact() multi-satellite ──
+  - name: fact_order_multi_sat
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ORDER_AMOUNT
+        tests:
+          - not_null
+
+  # ── fact_accumulating_snapshot() 3 milestones ──
+  - name: fact_order_fulfillment_3ms
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: ORDER_DATE
+        tests:
+          - not_null
+
+  # ── fact_accumulating_snapshot() BV milestones ──
+  - name: fact_order_fulfillment_bv
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: ORDER_DATE
+        tests:
+          - not_null
+
+  # ── dim_bridge() time-varying ──
+  - name: bridge_customer_account_timevar
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+
+  # ── bus_matrix parsing ──
+  - name: test_bus_matrix
+    columns:
+      - name: dimension_count
+        tests:
+          - accepted_values:
+              values: ['3']
+      - name: fact_count
+        tests:
+          - accepted_values:
+              values: ['4']
+      - name: bridge_count
+        tests:
+          - accepted_values:
+              values: ['1']
+
+  # ── validate_star ──
+  - name: test_validate_star
+    columns:
+      - name: result
+        tests:
+          - accepted_values:
+              values: ['validate_star_passed']
+
+  # ── generate_star ──
+  - name: test_generate_star
+    columns:
+      - name: result
+        tests:
+          - accepted_values:
+              values: ['generate_star_passed']
+
+  # ── eff_sat -> dim (relationship validity) ──
+  - name: dim_account_effectivity
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+      - name: EFFECTIVE_FROM
+        tests:
+          - not_null
+      - name: EFFECTIVE_TO
+        tests:
+          - not_null
+      - name: IS_CURRENT
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false, 'true', 'false']
+
+  # ── ma_sat -> dim (multi-active flattened) ──
+  - name: dim_customer_phone
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+
+  # ── nh_link -> fact (payment transaction) ──
+  - name: fact_payment
+    columns:
+      - name: PAYMENT_HK
+        tests:
+          - not_null
+          - unique
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: PAYMENT_AMOUNT
+        tests:
+          - not_null
+      - name: PAYMENT_METHOD
+        tests:
+          - not_null
+
+  # ── ref_table -> dim (reference/static) ──
+  - name: dim_country
+    columns:
+      - name: COUNTRY_HK
+        tests:
+          - not_null
+          - unique
+      - name: COUNTRY_CODE
+        tests:
+          - not_null
+          - unique
+      - name: COUNTRY_NAME
+        tests:
+          - not_null
+
+  # ── pit -> dim (point-in-time) ──
+  - name: dim_customer_pit
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+      - name: AS_OF_DATE
+        tests:
+          - not_null
+
+  # ── xts -> audit dim (satellite tracking) ──
+  - name: dim_customer_satellite_audit
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+      - name: SATELLITE_NAME
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  # ── link -> fact_factless (customer-account coverage) ──
+  - name: fact_customer_account_coverage
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+      - name: RECORD_COUNT
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, '1']

@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: metricflow_time_spine
+    description: >
+      MetricFlow time spine — one row per calendar day.
+      Required by MetricFlow for time-series metric queries.
+    time_spine:
+      standard_granularity_column: date_day
+    columns:
+      - name: date_day
+        granularity: day

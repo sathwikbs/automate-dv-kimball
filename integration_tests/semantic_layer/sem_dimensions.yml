@@ -1,0 +1,106 @@
+version: 2
+
+semantic_models:
+
+  # ── Customer Dimension (SCD1) ──
+  - name: sem_customers
+    description: |
+      Customer dimension built from hub_customer + sat_customer_details via automate_dv.dim().
+      SCD Type 1 — one row per customer with latest attributes.
+    model: ref('dim_customer')
+    defaults:
+      agg_time_dimension: load_ts
+
+    entities:
+      - name: customer
+        type: primary
+        expr: CUSTOMER_HK
+
+    dimensions:
+      - name: customer_id
+        type: categorical
+        expr: CUSTOMER_ID
+      - name: customer_name
+        type: categorical
+        expr: CUSTOMER_NAME
+      - name: customer_phone
+        type: categorical
+        expr: CUSTOMER_PHONE
+      - name: load_ts
+        type: time
+        expr: LOAD_DATETIME
+        type_params:
+          time_granularity: day
+
+    measures: []
+
+  # ── Product Dimension (SCD2) ──
+  - name: sem_products
+    description: |
+      Product dimension built from hub_product + sat_product_details via automate_dv.dim().
+      SCD Type 2 — multiple rows per product with validity windows.
+    model: ref('dim_product')
+    defaults:
+      agg_time_dimension: effective_from_ts
+
+    entities:
+      - name: product
+        type: primary
+        expr: PRODUCT_HK
+
+    dimensions:
+      - name: product_id
+        type: categorical
+        expr: PRODUCT_ID
+      - name: product_name
+        type: categorical
+        expr: PRODUCT_NAME
+      - name: is_current
+        type: categorical
+        expr: IS_CURRENT
+      - name: effective_from_ts
+        type: time
+        expr: EFFECTIVE_FROM
+        type_params:
+          time_granularity: day
+      - name: effective_to_ts
+        type: time
+        expr: EFFECTIVE_TO
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: unit_price
+        description: Product unit price (for reference, not typically aggregated).
+        agg: average
+        expr: UNIT_PRICE
+
+  # ── Date Dimension (Static/Conformed) ──
+  - name: sem_dates
+    description: |
+      Conformed date dimension from seed_date_dim.
+      Static reference data — no time-series aggregation.
+    model: ref('dim_date')
+
+    entities:
+      - name: date_key
+        type: primary
+        expr: DATE_KEY
+
+    dimensions:
+      - name: full_date
+        type: time
+        expr: FULL_DATE
+        type_params:
+          time_granularity: day
+      - name: day_name
+        type: categorical
+        expr: DAY_NAME
+      - name: month_name
+        type: categorical
+        expr: MONTH_NAME
+      - name: calendar_year
+        type: categorical
+        expr: YEAR
+
+    measures: []

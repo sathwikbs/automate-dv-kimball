@@ -1,0 +1,29 @@
+{{ config(materialized='table') }}
+
+{# Tests dim() with 2+ satellites on a single dimension.
+   The plan shows this as the "most common" pattern. #}
+
+{%- set src_pk = 'CUSTOMER_HK' -%}
+{%- set src_nk = 'CUSTOMER_ID' -%}
+{%- set src_ldts = 'LOAD_DATETIME' -%}
+{%- set source_model = 'hub_customer' -%}
+
+{%- set satellites = {
+    'sat_customer_details': {
+        'pk': 'CUSTOMER_HK',
+        'ldts': 'LOAD_DATETIME',
+        'payload': ['CUSTOMER_NAME', 'CUSTOMER_PHONE']
+    },
+    'sat_customer_address': {
+        'pk': 'CUSTOMER_HK',
+        'ldts': 'LOAD_DATETIME',
+        'payload': ['ADDRESS_LINE', 'CITY', 'STATE_CODE', 'ZIP_CODE']
+    }
+} -%}
+
+{{ automate_dv_kimball.dim(src_pk=src_pk,
+                   src_nk=src_nk,
+                   src_ldts=src_ldts,
+                   source_model=source_model,
+                   satellites=satellites,
+                   scd_type=1) }}

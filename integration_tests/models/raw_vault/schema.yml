@@ -1,0 +1,357 @@
+version: 2
+
+models:
+  # ── hub() ──
+  - name: hub_customer
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.hub_pk_unique_not_null
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+          - automate_dv_kimball.hub_nk_not_null
+
+  - name: hub_product
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.hub_pk_unique_not_null
+      - name: PRODUCT_ID
+        tests:
+          - not_null
+          - automate_dv_kimball.hub_nk_not_null
+
+  - name: hub_order
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.hub_pk_unique_not_null
+      - name: ORDER_ID
+        tests:
+          - not_null
+          - automate_dv_kimball.hub_nk_not_null
+
+  - name: hub_account
+    columns:
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+          - unique
+          - automate_dv_kimball.hub_pk_unique_not_null
+      - name: ACCOUNT_ID
+        tests:
+          - not_null
+          - automate_dv_kimball.hub_nk_not_null
+
+  # ── link() ──
+  - name: link_customer_account
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.link_fk_to_hub:
+              hub_model: ref('hub_customer')
+              hub_pk: CUSTOMER_HK
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.link_fk_to_hub:
+              hub_model: ref('hub_account')
+              hub_pk: ACCOUNT_HK
+
+  - name: link_order
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.link_fk_to_hub:
+              hub_model: ref('hub_customer')
+              hub_pk: CUSTOMER_HK
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.link_fk_to_hub:
+              hub_model: ref('hub_product')
+              hub_pk: PRODUCT_HK
+
+  - name: link_promotion_coverage
+    columns:
+      - name: PROMO_COV_HK
+        tests:
+          - not_null
+          - unique
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+
+  # ── sat() ──
+  - name: sat_customer_details
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.sat_pk_to_parent:
+              parent_model: ref('hub_customer')
+              parent_pk: CUSTOMER_HK
+      - name: HASHDIFF
+        tests:
+          - not_null
+          - automate_dv_kimball.sat_hashdiff_not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_product_details
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.sat_pk_to_parent:
+              parent_model: ref('hub_product')
+              parent_pk: PRODUCT_HK
+      - name: HASHDIFF
+        tests:
+          - not_null
+          - automate_dv_kimball.sat_hashdiff_not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_order_details
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: HASHDIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_order_placed
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_order_shipped
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_inventory_level
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_customer_address
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: HASHDIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: sat_order_context
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: HASHDIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+      - name: ORDER_DATE_KEY
+        tests:
+          - not_null
+      - name: ORDER_NUMBER
+        tests:
+          - not_null
+
+  - name: sat_order_delivered
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  # ── eff_sat() ──
+  - name: eff_sat_customer_account
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.eff_sat_no_overlap:
+              start_date: START_DATE
+              end_date: END_DATE
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+      - name: START_DATE
+        tests:
+          - not_null
+      - name: END_DATE
+        tests:
+          - not_null
+
+  # ── ma_sat() ──
+  - name: ma_sat_customer_phones
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.ma_sat_cdk_unique:
+              cdk_columns: ['PHONE_TYPE']
+              ldts_column: LOAD_DATETIME
+      - name: HASHDIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  # ── nh_link() ──
+  - name: nh_link_payment
+    columns:
+      - name: PAYMENT_HK
+        tests:
+          - not_null
+          - unique
+      - name: ORDER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.link_fk_to_hub:
+              hub_model: ref('hub_order')
+              hub_pk: ORDER_HK
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.link_fk_to_hub:
+              hub_model: ref('hub_customer')
+              hub_pk: CUSTOMER_HK
+      - name: PAYMENT_AMOUNT
+        tests:
+          - not_null
+
+  # ── ref_table() ──
+  - name: ref_country
+    columns:
+      - name: COUNTRY_HK
+        tests:
+          - not_null
+          - unique
+      - name: COUNTRY_CODE
+        tests:
+          - not_null
+
+  # ── pit() ──
+  - name: pit_customer
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - automate_dv_kimball.pit_pk_as_of_unique:
+              as_of_column: AS_OF_DATE
+          - automate_dv_kimball.pit_covers_all_entities:
+              hub_model: ref('hub_customer')
+              hub_pk: CUSTOMER_HK
+      - name: AS_OF_DATE
+        tests:
+          - not_null
+
+  # ── xts() ──
+  - name: xts_customer
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+      - name: SATELLITE_NAME
+        tests:
+          - automate_dv_kimball.xts_satellite_name_valid:
+              valid_satellites: ['SAT_CUSTOMER_DETAILS', 'SAT_CUSTOMER_ADDRESS']
+
+  # ── as_of_dates (PIT/bridge helper) ──
+  - name: as_of_dates
+    columns:
+      - name: AS_OF_DATE
+        tests:
+          - not_null
+          - unique
+
+  # ── bridge_cust_acct (hand-built Kimball bridge source) ──
+  - name: bridge_cust_acct
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+      - name: OWNERSHIP_PCT
+        tests:
+          - not_null
+
+  # ── bridge() DV2 ──
+  - name: bridge_dv2_order
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+
+  # ── seed_date_dim (date reference data) ──
+  - name: seed_date_dim
+    columns:
+      - name: DATE_KEY
+        tests:
+          - not_null
+          - unique
+      - name: FULL_DATE
+        tests:
+          - not_null

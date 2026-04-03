@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: bv_customer_segment
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_SEGMENT
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PLATINUM', 'GOLD', 'SILVER', 'BRONZE']
+      - name: LIFETIME_VALUE
+        tests:
+          - not_null
+
+  - name: bv_customer_deduped
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+          - unique
+      - name: CUSTOMER_ID
+        tests:
+          - not_null
+          - unique
+
+  - name: bv_order_milestones
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: ORDER_PLACED_DATE
+        tests:
+          - not_null

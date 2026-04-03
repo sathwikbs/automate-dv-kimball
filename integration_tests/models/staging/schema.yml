@@ -1,0 +1,164 @@
+version: 2
+
+models:
+  - name: stg_customers
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HASHDIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_products
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: PRODUCT_HASHDIFF
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_orders
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_inventory
+    columns:
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_promotions
+    columns:
+      - name: PROMO_COV_HK
+        tests:
+          - not_null
+      - name: PRODUCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+
+  - name: stg_customer_accounts
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+
+  - name: stg_shipments
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_account_effectivity
+    columns:
+      - name: CUST_ACCT_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: ACCOUNT_HK
+        tests:
+          - not_null
+
+  - name: stg_customer_phones
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: PHONE_HASHDIFF
+        tests:
+          - not_null
+
+  - name: stg_payments
+    columns:
+      - name: PAYMENT_HK
+        tests:
+          - not_null
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+
+  - name: stg_country_codes
+    columns:
+      - name: COUNTRY_HK
+        tests:
+          - not_null
+
+  - name: stg_customer_addresses
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: CUSTOMER_ADDRESS_HASHDIFF
+        tests:
+          - not_null
+
+  - name: stg_deliveries
+    columns:
+      - name: ORDER_HK
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_customers_xts
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: SATELLITE_NAME_1
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null
+
+  - name: stg_customer_addresses_xts
+    columns:
+      - name: CUSTOMER_HK
+        tests:
+          - not_null
+      - name: SATELLITE_NAME_2
+        tests:
+          - not_null
+      - name: LOAD_DATETIME
+        tests:
+          - not_null

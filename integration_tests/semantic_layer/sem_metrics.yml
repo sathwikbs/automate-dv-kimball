@@ -1,0 +1,108 @@
+version: 2
+
+metrics:
+
+  # ══════════════════════════════════════════
+  # Revenue & Orders (from sem_orders)
+  # ══════════════════════════════════════════
+
+  - name: total_revenue
+    description: Total revenue across all orders.
+    type: simple
+    label: Total Revenue
+    type_params:
+      measure: order_amount
+
+  - name: total_orders
+    description: Total count of individual orders.
+    type: simple
+    label: Total Orders
+    type_params:
+      measure: order_count
+
+  - name: total_quantity_sold
+    description: Total quantity of items sold across all orders.
+    type: simple
+    label: Total Quantity Sold
+    type_params:
+      measure: order_quantity
+
+  - name: average_order_value
+    description: Average revenue per order (total_revenue / total_orders).
+    type: derived
+    label: Average Order Value
+    type_params:
+      expr: total_revenue / total_orders
+      metrics:
+        - name: total_revenue
+        - name: total_orders
+
+  - name: revenue_per_unit
+    description: Average revenue per unit sold (total_revenue / total_quantity_sold).
+    type: derived
+    label: Revenue Per Unit
+    type_params:
+      expr: total_revenue / total_quantity_sold
+      metrics:
+        - name: total_revenue
+        - name: total_quantity_sold
+
+  # ══════════════════════════════════════════
+  # Payments (from sem_payments)
+  # ══════════════════════════════════════════
+
+  - name: total_payments
+    description: Total payment amount collected.
+    type: simple
+    label: Total Payments
+    type_params:
+      measure: payment_amount
+
+  - name: total_payment_count
+    description: Total count of individual payments.
+    type: simple
+    label: Payment Count
+    type_params:
+      measure: payment_count
+
+  # ══════════════════════════════════════════
+  # Fulfillment (from sem_order_fulfillment)
+  # ══════════════════════════════════════════
+
+  - name: avg_fulfillment_days
+    description: Average days from order placement to shipment.
+    type: simple
+    label: Avg Fulfillment Days
+    type_params:
+      measure: order_to_ship_days
+
+  - name: total_fulfillment_orders
+    description: Total count of orders in the fulfillment pipeline.
+    type: simple
+    label: Fulfillment Order Count
+    type_params:
+      measure: fulfillment_count
+
+  # ══════════════════════════════════════════
+  # Inventory (from sem_inventory)
+  # ══════════════════════════════════════════
+
+  - name: current_inventory
+    description: |
+      Current inventory on hand (semi-additive).
+      Uses latest snapshot per product to avoid double-counting across time.
+    type: simple
+    label: Current Inventory
+    type_params:
+      measure: quantity_on_hand
+
+  # ══════════════════════════════════════════
+  # Promotions (from sem_promotions)
+  # ══════════════════════════════════════════
+
+  - name: promotion_coverage_count
+    description: Total number of promotion coverage events (product-customer intersections).
+    type: simple
+    label: Promotion Coverage Count
+    type_params:
+      measure: promotion_count

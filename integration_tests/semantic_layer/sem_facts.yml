@@ -1,0 +1,197 @@
+version: 2
+
+semantic_models:
+
+  # ── Order Transaction Fact ──
+  - name: sem_orders
+    description: |
+      Order transaction fact built from link_order + sat_order_details via automate_dv.fact().
+      Grain: one row per order. Joins to dim_customer, dim_product, dim_date.
+    model: ref('fact_order')
+    defaults:
+      agg_time_dimension: order_ts
+
+    entities:
+      - name: order_id
+        type: primary
+        expr: ORDER_HK
+      - name: customer
+        type: foreign
+        expr: CUSTOMER_HK
+      - name: product
+        type: foreign
+        expr: PRODUCT_HK
+      - name: date_key
+        type: foreign
+        expr: ORDER_DATE_KEY
+
+    dimensions:
+      - name: order_number
+        type: categorical
+        expr: ORDER_NUMBER
+        description: Degenerate dimension — the source order number.
+      - name: order_ts
+        type: time
+        expr: LOAD_DATETIME
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: order_amount
+        description: Total monetary value of the order.
+        agg: sum
+        expr: ORDER_AMOUNT
+      - name: order_quantity
+        description: Total quantity of items in the order.
+        agg: sum
+        expr: ORDER_QUANTITY
+      - name: order_count
+        description: Count of individual orders.
+        expr: "1"
+        agg: sum
+
+  # ── Order Fulfillment Accumulating Snapshot ──
+  - name: sem_order_fulfillment
+    description: |
+      Order fulfillment accumulating snapshot built via automate_dv.fact_accumulating_snapshot().
+      Tracks order-to-ship lifecycle with milestone dates and lag facts.
+    model: ref('fact_order_fulfillment')
+    defaults:
+      agg_time_dimension: order_date_ts
+
+    entities:
+      - name: order_id
+        type: primary
+        expr: ORDER_HK
+      - name: customer
+        type: foreign
+        expr: CUSTOMER_HK
+
+    dimensions:
+      - name: order_date_ts
+        type: time
+        expr: ORDER_DATE
+        type_params:
+          time_granularity: day
+      - name: ship_date_ts
+        type: time
+        expr: SHIP_DATE
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: fulfillment_order_amount
+        description: Order amount from the fulfillment pipeline.
+        agg: sum
+        expr: ORDER_AMOUNT
+      - name: order_to_ship_days
+        description: Days between order placement and shipment.
+        agg: average
+        expr: ORDER_TO_SHIP_DAYS
+      - name: fulfillment_count
+        description: Count of orders in the fulfillment pipeline.
+        expr: "1"
+        agg: sum
+
+  # ── Inventory Periodic Snapshot (Daily) ──
+  - name: sem_inventory
+    description: |
+      Daily inventory snapshot built via automate_dv.fact_periodic_snapshot().
+      Semi-additive: quantity_on_hand should only be aggregated at latest snapshot per product.
+    model: ref('fact_inventory_daily')
+    defaults:
+      agg_time_dimension: snapshot_date
+
+    entities:
+      - name: inventory_snapshot
+        type: primary
+        expr: "CONCAT(PRODUCT_HK, '|', snapshot_date_key)"
+      - name: product
+        type: foreign
+        expr: PRODUCT_HK
+
+    dimensions:
+      - name: snapshot_date
+        type: time
+        expr: snapshot_date_key
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: quantity_on_hand
+        description: Inventory quantity on hand (semi-additive — use latest snapshot only).
+        agg: sum
+        expr: QUANTITY_ON_HAND
+        non_additive_dimension:
+          name: snapshot_date
+          window_choice: max
+
+  # ── Payment Transaction Fact ──
+  - name: sem_payments
+    description: |
+      Payment transaction fact from nh_link_payment.
+      Non-historized link — insert-only event records with payment amount and method.
+    model: ref('fact_payment')
+    defaults:
+      agg_time_dimension: payment_ts
+
+    entities:
+      - name: payment
+        type: primary
+        expr: PAYMENT_HK
+      - name: customer
+        type: foreign
+        expr: CUSTOMER_HK
+
+    dimensions:
+      - name: payment_method
+        type: categorical
+        expr: PAYMENT_METHOD
+      - name: payment_ts
+        type: time
+        expr: LOAD_DATETIME
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: payment_amount
+        description: Total payment amount.
+        agg: sum
+        expr: PAYMENT_AMOUNT
+      - name: payment_count
+        description: Count of individual payments.
+        expr: "1"
+        agg: sum
+
+  # ── Promotion Coverage Factless Fact ──
+  - name: sem_promotions
+    description: |
+      Promotion coverage factless fact built via automate_dv.fact_factless().
+      Records which products were promoted to which customers — no measures, just intersections.
+    model: ref('fact_promotion_coverage')
+    defaults:
+      agg_time_dimension: promo_ts
+
+    entities:
+      - name: promo
+        type: primary
+        expr: PROMO_COV_HK
+      - name: customer
+        type: foreign
+        expr: CUSTOMER_HK
+      - name: product
+        type: foreign
+        expr: PRODUCT_HK
+
+    dimensions:
+      - name: promo_ts
+        type: time
+        expr: LOAD_DATETIME
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: promotion_count
+        description: Count of promotion coverage events.
+        agg: sum
+        expr: RECORD_COUNT

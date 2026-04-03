@@ -1,0 +1,97 @@
+name: automate_dv_kimball_integration_tests
+version: 1.0.0
+require-dbt-version: [ ">=1.0.0", "<3.0.0" ]
+config-version: 2
+profile: default
+
+model-paths: [ "models", "semantic_layer" ]
+seed-paths: [ "seeds" ]
+test-paths: [ "tests" ]
+macro-paths: [ "macros" ]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+dispatch:
+  - macro_namespace: automate_dv_kimball
+    search_order: ['automate_dv_kimball']
+
+vars:
+  bus_matrix:
+    dimensions:
+      dim_customer:
+        source_model: hub_customer
+        natural_key: CUSTOMER_ID
+        scd_type: 1
+        conformed: true
+        ghost_record: true
+        satellites:
+          sat_customer_details:
+            pk: CUSTOMER_HK
+            ldts: LOAD_DATETIME
+            payload: [CUSTOMER_NAME, CUSTOMER_PHONE]
+      dim_product:
+        source_model: hub_product
+        natural_key: PRODUCT_ID
+        scd_type: 2
+        conformed: true
+        satellites:
+          sat_product_details:
+            pk: PRODUCT_HK
+            ldts: LOAD_DATETIME
+            payload: [PRODUCT_NAME, UNIT_PRICE]
+            hashdiff: HASHDIFF
+      dim_date:
+        type: static
+        source_model: seed_date_dim
+    facts:
+      fact_order:
+        type: transaction
+        grain: ORDER_HK
+        dimensions:
+          CUSTOMER_HK: dim_customer
+          PRODUCT_HK: dim_product
+          ORDER_DATE_KEY: {dim: dim_date, role: order_date}
+        degenerate_dimensions: [ORDER_NUMBER]
+        satellites:
+          sat_order_details:
+            pk: ORDER_HK
+            ldts: LOAD_DATETIME
+            measures: [ORDER_AMOUNT, ORDER_QUANTITY]
+      fact_inventory_snapshot:
+        type: periodic_snapshot
+        snapshot_period: day
+        dimensions:
+          PRODUCT_HK: dim_product
+        satellites:
+          sat_inventory_level:
+            pk: PRODUCT_HK
+            ldts: LOAD_DATETIME
+            measures: [QUANTITY_ON_HAND]
+            semi_additive: [QUANTITY_ON_HAND]
+      fact_order_fulfillment:
+        type: accumulating_snapshot
+        dimensions:
+          CUSTOMER_HK: dim_customer
+        milestones:
+          ORDER_DATE:
+            model: sat_order_placed
+            pk: ORDER_HK
+            date_col: LOAD_DATETIME
+            dim: dim_date
+          SHIP_DATE:
+            model: sat_order_shipped
+            pk: ORDER_HK
+            date_col: LOAD_DATETIME
+            dim: dim_date
+      fact_promotion_coverage:
+        type: factless
+        dimensions:
+          PRODUCT_HK: dim_product
+          CUSTOMER_HK: dim_customer
+    bridges:
+      bridge_customer_account:
+        source_model: bridge_cust_acct
+        dimensions: [dim_customer]
+        weighting_factor: OWNERSHIP_PCT

@@ -1,0 +1,16 @@
+name: automate_dv_kimball
+version: 1.0.0
+require-dbt-version: [">=1.0.0", "<3.0.0"]
+config-version: 2
+
+macro-paths: ["macros"]
+docs-paths: ["docs"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+dispatch:
+  - macro_namespace: automate_dv_kimball
+    search_order: ['automate_dv_kimball']
